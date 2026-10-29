@@ -119,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     runner = PydanticAIRunner(skill, backend, store)
     request = make_request(skill, args.prompt, profile, args.model, vars, args.runs_dir / "_work")
     print(f"run {request.run_id}  skill {skill.name}@{skill.git_hash[:12]}  model {args.model}  profile {profile}")
+    asyncio.run(store.put(request.run_id, "request.json", request.model_dump_json(indent=1, exclude={"workdir"}).encode()))
     last = asyncio.run(run_one(runner, request))
     folder = store.path(request.run_id)
     print(f"files: {folder}")

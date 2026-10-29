@@ -8,8 +8,8 @@ from . import check_key
 
 
 class LocalDiskFileStore:
-    def __init__(self, root: Path) -> None:
-        self.root = root
+    def __init__(self, root: Path | str) -> None:
+        self.root = Path(root)
 
     def path(self, run_id: str, key: str = "") -> Path:
         check_key(run_id, key)

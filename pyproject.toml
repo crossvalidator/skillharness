@@ -1,6 +1,6 @@
 [project]
 name = "skillharness"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Run an Agent Skill folder as a bounded, recorded run on any model: sandboxed commands, a hard budget, typed events."
 readme = "README.md"
 license = "MIT"

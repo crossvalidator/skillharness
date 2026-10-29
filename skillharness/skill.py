@@ -62,13 +62,13 @@ def readable_files(folder: Path, patterns: list[str]) -> tuple[str, ...]:
     return tuple(sorted(found))
 
 
-def load_skill(folder: Path, manifest: Manifest | Path | None = None, *, git_hash: str | None = None) -> Skill:
+def load_skill(folder: Path | str, manifest: Manifest | Path | str | None = None, *, git_hash: str | None = None) -> Skill:
     """Load the skill at `folder`.
 
     `manifest`: a loaded Manifest, a path to one, or None for `harness.yaml` inside the folder.
     `git_hash` overrides the git lookup where the folder is a pinned copy outside a repository.
     """
-    folder = folder.resolve()
+    folder = Path(folder).resolve()
     skill_md = folder / "SKILL.md"
     if not skill_md.is_file():
         raise FileNotFoundError(f"no SKILL.md in {folder}")
@@ -79,7 +79,7 @@ def load_skill(folder: Path, manifest: Manifest | Path | None = None, *, git_has
     if isinstance(manifest, Manifest):
         spec = manifest
     else:
-        path = manifest or folder / MANIFEST_FILE
+        path = Path(manifest) if manifest else folder / MANIFEST_FILE
         if not path.is_file():
             raise FileNotFoundError(f"no manifest at {path}; a skill needs harness.yaml or one supplied by the caller")
         spec = load_manifest(path)
