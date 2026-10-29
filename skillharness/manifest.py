@@ -110,7 +110,7 @@ class SandboxSpec(BaseModel):
     node: str | None = None  # major version, e.g. "20"
     apt: list[str] = []
     pip: list[str] = []
-    folders: list[str] = []  # folders of the skill to copy beyond SKILL.md and the readable files
+    setup: list[str] = []  # shell commands run while the image is built (fonts, wrappers)
     env: dict[str, str] = {}
     cpu: float = 1.0
     memory_mib: int = 1024

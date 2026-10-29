@@ -91,8 +91,10 @@ prompt:
 sandbox:
   node: "20"
   apt: [chromium, fonts-noto-color-emoji]
-  folders: [kit/, scripts/]          # beyond SKILL.md, references and the readable files
-  env: {CHROME_PATH: /usr/bin/chromium}
+  setup: ["printf '...' > /usr/local/bin/chromium-headless && chmod 755 /usr/local/bin/chromium-headless"]
+  env: {CHROME_PATH: /usr/local/bin/chromium-headless}
+  cpu: 2
+  memory_mib: 2048
 ```
 
 A skill with no commands is still valid: the model reads, writes the artifact and finishes. That is
