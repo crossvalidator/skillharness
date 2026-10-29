@@ -1,0 +1,35 @@
+# How skillharness runs the chart skill without a shell. See docs/plan-v1.md for the format.
+artifact:
+  name: chart.py
+  must_contain: "def draw("
+  description: "that defines `draw(ax)`"
+readable:
+  - references/*.md
+  - examples/*.py
+commands:
+  render:
+    description: >
+      Render the chart you last wrote, like `python scripts/render.py chart.py`.
+    run: "{python} {skill}/scripts/render.py {artifact}"
+    options:
+      wide: {type: flag, argv: "--wide", description: "16:9 canvas for a slide instead of 7:5"}
+      dark: {type: flag, argv: "--dark", description: "dark background"}
+    outputs:
+      png: chart.png
+      svg: chart.svg
+    images: [chart.png]
+    timeout: 60
+    required_before_finish: true
+finish:
+  summary: One or two lines on what the chart shows and the finding its title states.
+  extra:
+    caveats: {type: list, description: "What the reader should know: numbers you assumed, limits of the view."}
+profiles:
+  quick:    {runs: 2, seconds: 120, dollars: 0.5, options: [], effort: medium, minutes: about 1 minute}
+  standard: {runs: 4, seconds: 300, dollars: 1.5, options: [wide, dark], effort: high, minutes: about 3 minutes}
+prompt:
+  run: |
+    Audience: {audience}.
+    Profile: {profile} ({profile_minutes}).
+sandbox:
+  pip: [matplotlib]
