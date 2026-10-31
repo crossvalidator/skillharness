@@ -134,7 +134,9 @@ class PydanticAIRunner:
 
     async def _drive(self, request: RunRequest, queue: asyncio.Queue[Event | None]) -> None:
         spec = self.models.get(request.model) or self.models[DEFAULT_MODEL]
-        state = RunState(request, self.skill, self.backend, self.store, spec, queue)
+        manifest = self.skill.manifest
+        context_spec = manifest.context_for(request.profile) if request.profile in manifest.profiles else manifest.context
+        state = RunState(request, self.skill, self.backend, self.store, spec, queue, context_spec=context_spec)
         model = self.model_override or make_model(spec)
         agent = make_agent(self.skill, model, system_prompt(self.skill, request))
         settings = None if self.model_override else make_settings(spec, request.budget.effort)
@@ -187,6 +189,7 @@ class PydanticAIRunner:
                     rounds=state.rounds,
                     seconds=round(time.monotonic() - state.started, 1),
                     usage=totals(spec, usage),
+                    context=state.context,
                 )
             )
         finally:
@@ -243,9 +246,12 @@ class PydanticAIRunner:
                 seconds=seconds,
                 usage=use,
                 stopped_by=stopped_by,  # type: ignore[arg-type]
+                context=state.context,
             )
         else:
             reason = failure or f"nothing passed before the run stopped ({stopped_by})"
-            event = FailedEvent(reason=reason, transcript_key=TRANSCRIPT_KEY, rounds=state.rounds, seconds=seconds, usage=use)
+            event = FailedEvent(
+                reason=reason, transcript_key=TRANSCRIPT_KEY, rounds=state.rounds, seconds=seconds, usage=use, context=state.context
+            )
         await state.store.put(state.run_id, RESULT_KEY, json.dumps({**base, **event.model_dump(mode="json")}, indent=1).encode())
         return event

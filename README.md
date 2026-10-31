@@ -96,11 +96,16 @@ prompt:
     Profile: {profile} ({profile_minutes}).
 sandbox:
   pip: [matplotlib]
+context:                              # optional; these are the defaults (see docs/context-management.md)
+  keep_turns: 1                       # images of older command results become one-line stubs
+  keep_versions: 1                    # earlier artifact versions in write_file calls become stubs
+  text_limit_tokens: 2000             # longer text results are stored and shown as a head plus a stub
 ```
 
 From this the harness generates the model's tools: `read_file` over the readable globs,
 `write_file` for the artifact, one tool per command with the declared options as typed parameters,
-and `finish` with the declared fields. Nothing else exists; there is no shell tool. The system prompt
+`fetch_result` to bring back anything the history shows as a stub, and `finish` with the declared
+fields. Nothing else exists; there is no shell tool. The system prompt
 is the `SKILL.md` body, a note describing the tools and the budget, and the manifest's run lines with
 the caller's variables filled in. `skillharness show examples/chart --profile quick` prints it.
 
@@ -120,9 +125,11 @@ runs/<run id>/
   request.json          prompt, profile, model, variables, budget, skill name and git hash
   chart.py              the artifact, last version
   chart.png  chart.svg  the outputs of the last successful command
-  rounds/01/            artifact, outputs and images of each round
+  rounds/01/            artifact, outputs and images of each round; a long command log in full
   rounds/02/
-  transcript.json       every message, image bytes replaced by their store key
+  writes/01/            every accepted version of the artifact
+  transcript.json       every message as the model last saw it: image bytes replaced by their
+                        store key, older images and versions by their stubs
   result.json           the finished or failed event: summary, extra fields, rounds, seconds,
                         tokens, cost, what stopped the run
 ```
@@ -167,22 +174,31 @@ for `skillharness.store.s3.S3FileStore` and the run folders land in a bucket.
 Prices per million tokens are in `skillharness/models.py`; the cost in every `finished` event comes
 from them and the provider's reported usage, including cached input.
 
-## Roadmap
+## Context management
 
-The next work is context management, each item measured in tokens and dollars per round against the
-plain loop and published with the code:
+A run's history grows with every round: the images the model looked at, the versions of the file it
+wrote, the logs. Left alone, each request re-sends all of it. The harness keeps the history small
+without losing anything, with rules that live in the manifest's `context:` section and have
+defaults:
 
-1. Image elision: a check image is worth looking at once; after a newer round supersedes it, its
-   bytes leave the message history and a one-line reference to its store key takes their place.
-2. Tool results in the store: large results reach the model as a head plus a handle, with a tool to
-   fetch more on demand; the transcript becomes an index rather than the payload.
-3. Transcript compaction past a token threshold, measured against the quality bar.
-4. Cache-aware prompt layout, measured by cache-read share.
+- **Elision, before every request.** Images in a command result older than the newest `keep_turns`
+  results become one-line stubs; earlier artifact versions inside the model's own `write_file` calls
+  become stubs; a text result over `text_limit_tokens` is stored in full and shown as its first
+  lines plus a stub. A stub names the store key, the round, whether it passed and its size, and
+  `fetch_result(key)` brings the original back. Only the turn that has just aged out is rewritten,
+  so the provider's cached prefix stays identical between requests.
+- **Compaction, behind a threshold.** Next: when the previous request's input reaches `compact_at`
+  of the model's context window, the middle of the history is replaced by a structured summary from
+  a cheaper model, with the task, the plan and the current artifact pinned and the recent turns kept
+  verbatim. The design is in `docs/context-management.md`.
 
-`docs/plan-v1.md` is the design and the decisions behind it. `CHANGELOG.md` lists releases.
+The `finished` event carries a `context` block with what happened: images and versions elided, text
+results stored, fetches made, compactions. Measurements on the same eval prompt with and without
+each rule go in `docs/measurements.md`.
 
 ## Status
 
-v0.1.0. The manifest format may still change between minor versions; the event contract is meant
+v0.1.0 released; elision and `fetch_result` are on `main` since 2026-10-30 and will be v0.2.0 with
+compaction. The manifest format may still change between minor versions; the event contract is meant
 to stay. Extracted from a production service that builds interactive teaching figures, which is its
 first consumer. MIT licence.

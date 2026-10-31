@@ -63,6 +63,16 @@ class InfraTotals(BaseModel):
     store_cost_usd: float = 0.0
 
 
+class ContextTotals(BaseModel):
+    """What context management did to the model's history during the run (docs/context-management.md)."""
+
+    elided_images: int = 0  # images replaced by a stub in older command results
+    elided_versions: int = 0  # earlier artifact versions replaced by a stub in write_file arguments
+    stored_text_results: int = 0  # long text results written to the store and shown as a head plus a stub
+    fetches: int = 0  # fetch_result calls the model made
+    compactions: list[dict[str, Any]] = []  # one record per compaction: tokens before and after, turns folded, cost
+
+
 # --- events ---
 
 
@@ -116,6 +126,7 @@ class FinishedEvent(BaseModel):
     seconds: float
     usage: UsageTotals
     stopped_by: StopReason
+    context: ContextTotals = Field(default_factory=ContextTotals)
     infra: InfraTotals | None = None
 
 
@@ -126,6 +137,7 @@ class FailedEvent(BaseModel):
     rounds: int
     seconds: float
     usage: UsageTotals
+    context: ContextTotals = Field(default_factory=ContextTotals)
     infra: InfraTotals | None = None
 
 

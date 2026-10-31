@@ -139,8 +139,10 @@ Every run leaves `runs/<run_id>/` in the active store. It is the whole record.
 | `<artifact>` | the latest artifact |
 | `rounds/NN/<artifact>` | the artifact each command run used |
 | `rounds/NN/<outputs>`, `rounds/NN/*.png` | that round's outputs and images |
+| `rounds/NN/<command>.txt` | a command log too long to stay in the history, in full |
+| `writes/NN/<artifact>` | every accepted version of the artifact, what a version stub points at |
 | `<outputs>` | the last successful command's outputs, copied to the top at finish |
-| `transcript.json` | every message and tool call, images stripped |
+| `transcript.json` | every message and tool call as the model last saw it: images stripped, older items as stubs |
 | `result.json` | the `finished` or `failed` event |
 | `infra.json` | infrastructure seconds and cost, when the consumer measures them |
 

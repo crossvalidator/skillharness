@@ -1,0 +1,56 @@
+{
+ "run_id": "siRPCy3NJKNk",
+ "prompt": "I teach grade 6 science. Make me an interactive figure for tomorrow's lesson on why summer is hotter than winter. I've got about 10 minutes before my next class.",
+ "profile": "deep",
+ "vars": {
+  "level": "5-8",
+  "level_words": "grades 5-8 (about ages 10-14)",
+  "depth": "deep"
+ },
+ "model": "claude-opus-5-5",
+ "skill": {
+  "name": "unfold",
+  "git_hash": "f9cad77bce2b31142ce29dfeefa5f1b0ea96a4d7"
+ },
+ "budget": {
+  "runs": 8,
+  "seconds": 600,
+  "dollars": 4.0,
+  "options": [
+   "phone",
+   "dark_shot",
+   "state"
+  ],
+  "effort": "high",
+  "request_limit": 28
+ },
+ "type": "finished",
+ "summary": "I've built your seasons figure for grade 6. A sunbeam 1 m wide hits the ground at noon in a place 40\u00b0 north (about as far north as Madrid, New York or Beijing). A date slider runs from 21 January to 21 December and a switch turns Earth's tilt on and off. As the date moves to winter, the sun sinks and the beam spreads along a ruler on the ground. On 21 June it covers 1.04 m and on 21 December 2.24 m. A 24-hour bar shows daylight shrinking from 15 hours to 9. A meter shows the day's total sunlight dropping to 30% of June's. A small graph shows how high the noon sun is in each month. The readout does the sum on screen, e.g. \"100 \u00f7 2.24 = 45% of the strength of a sun straight overhead\". With the tilt switched off, every day has 12 hours of light and the same 50\u00b0 noon sun, so there are no seasons. The caption also corrects the common belief that distance causes seasons: Earth is closest to the sun in January. Under the figure, a note says what it leaves out: seasons are swapped south of the equator, air and clouds absorb some sunlight, and the hottest weeks come about a month after the longest day. The challenge is to find the month with the widest beam and the shortest day (21 December). I checked it at the start and end of the slider, with the tilt off, in dark mode and at phone width. On a phone, the ruler and graph labels come out small.",
+ "extra": {
+  "rungs_skipped": []
+ },
+ "artifact_key": "figure.js",
+ "outputs": {
+  "page": "figure.html"
+ },
+ "transcript_key": "transcript.json",
+ "rounds": 4,
+ "seconds": 230.7,
+ "usage": {
+  "requests": 6,
+  "input_tokens": 141647,
+  "cache_read_tokens": 63973,
+  "cache_write_tokens": 77660,
+  "output_tokens": 21598,
+  "cost_usd": 0.8331
+ },
+ "stopped_by": "model",
+ "context": {
+  "elided_images": 7,
+  "elided_versions": 3,
+  "stored_text_results": 0,
+  "fetches": 0,
+  "compactions": []
+ },
+ "infra": null
+}

@@ -1,0 +1,59 @@
+{
+ "run_id": "vKmitlnbBAU6",
+ "prompt": "I teach grade 6 science. Make me an interactive figure for tomorrow's lesson on why summer is hotter than winter. I've got about 10 minutes before my next class.",
+ "profile": "deep",
+ "vars": {
+  "level": "5-8",
+  "level_words": "grades 5-8 (about ages 10-14)",
+  "depth": "deep"
+ },
+ "model": "claude-opus-5-5",
+ "skill": {
+  "name": "unfold",
+  "git_hash": "f9cad77bce2b31142ce29dfeefa5f1b0ea96a4d7"
+ },
+ "budget": {
+  "runs": 8,
+  "seconds": 600,
+  "dollars": 4.0,
+  "options": [
+   "phone",
+   "dark_shot",
+   "state"
+  ],
+  "effort": "high",
+  "request_limit": 28
+ },
+ "type": "finished",
+ "summary": "I built the figure at grades 5-8, deep depth: a beam of noon sunlight, always 1 m wide, landing on the ground at a town 40\u00b0 north. Students drag a date slider (the 21st of each month) and the Sun rises toward June 21 or sinks toward Dec 21 along a dashed path. Watch the lit patch on the metre ruler: it grows from 1.05 m in June to 2.23 m in December. The readout does the sum on screen (100 units of sunlight \u00f7 2.23 m\u00b2 = 45 units on each m\u00b2) and gives the day length (15 h in June, 9 h in December). An \"Earth's tilt\" switch turns the cause off: the Sun then sits at 50\u00b0 every day with 12 h of daylight, and there are no seasons. Beside the scene, a small orbit drawing shows the north half leaning toward or away from the Sun, and a graph of sunlight per m\u00b2 over the year marks the chosen date. The caption heads off the usual mistake that seasons come from distance (Earth is closest to the Sun in early January). Under the drawing, students can point at the five named parts to see what each does. The challenge, finding the day each square metre gets the most sunlight, has June 21 as its answer.",
+ "extra": {
+  "rungs_skipped": [
+   "Every rung for deep depth is done. I checked the phone and dark-theme sheets in round 2 and haven't re-checked since the last small layout fixes. On a phone, the labels inside the drawing come out small because the frame is wide.",
+   "No facts were looked up, since this run has no search tool. The numbers come from standard formulas for 40\u00b0 north: noon Sun 73\u00b0 in June and 27\u00b0 in December, and 15 h and 9 h of daylight. They match well-known values."
+  ]
+ },
+ "artifact_key": "figure.js",
+ "outputs": {
+  "page": "figure.html"
+ },
+ "transcript_key": "transcript.json",
+ "rounds": 4,
+ "seconds": 313.6,
+ "usage": {
+  "requests": 6,
+  "input_tokens": 173204,
+  "cache_read_tokens": 89793,
+  "cache_write_tokens": 83397,
+  "output_tokens": 30871,
+  "cost_usd": 1.0524
+ },
+ "stopped_by": "model",
+ "context": {
+  "elided_images": 7,
+  "elided_versions": 3,
+  "stored_text_results": 0,
+  "fetches": 0,
+  "compactions": []
+ },
+ "infra": null
+}

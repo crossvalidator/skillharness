@@ -6,23 +6,29 @@ No shell and no network from the model's side, ever. Budgets are enforced here, 
 from __future__ import annotations
 
 import asyncio
+import mimetypes
 import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, create_model
 from pydantic_ai import Agent, BinaryContent, ModelRetry, RunContext, Tool, ToolOutput, ToolReturn
+from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
+from .context import CHARS_PER_TOKEN, FETCH_TOOL, elide, paginate, text_head, version_key
 from .contract import (
     ArtifactWrittenEvent,
     CommandFinishedEvent,
     CommandStartedEvent,
+    ContextTotals,
     Event,
     PlanEvent,
     RunRequest,
 )
+from .manifest import ContextSpec
 from .models import ModelSpec
 from .sandbox import CommandBackend, CommandCall
 from .skill import Skill
@@ -49,6 +55,7 @@ class RunState:
     store: FileStore
     spec: ModelSpec
     events: asyncio.Queue[Event | None]
+    context_spec: ContextSpec = field(default_factory=ContextSpec)
     started: float = field(default_factory=time.monotonic)
     source: str | None = None
     runs: int = 0  # command runs that counted toward the budget
@@ -56,6 +63,10 @@ class RunState:
     refused: int = 0
     plan_seen: bool = False
     last_ok: dict[str, tuple[int, dict[str, tuple[str, bytes]]]] = field(default_factory=dict)  # command -> (round, outputs)
+    writes: int = 0  # accepted write_file calls, for writes/NN numbering
+    write_ids: dict[str, int] = field(default_factory=dict)  # tool call id -> version number
+    fetchable: set[str] = field(default_factory=set)  # store keys shown as stubs, the only ones fetch_result accepts
+    context: ContextTotals = field(default_factory=ContextTotals)
 
     def emit(self, event: Event) -> None:
         self.events.put_nowait(event)
@@ -108,7 +119,10 @@ async def write_file(ctx: RunContext[RunState], source: str, plan: str | None = 
         state.emit(PlanEvent(text=plan.strip()))
     state.source = source
     data = source.encode("utf-8")
+    state.writes += 1
+    state.write_ids[ctx.tool_call_id or f"write-{state.writes}"] = state.writes
     await state.store.put(state.run_id, artifact.name, data)
+    await state.store.put(state.run_id, version_key(state.writes, artifact.name), data)
     state.emit(ArtifactWrittenEvent(key=artifact.name, bytes=len(data)))
     state.check_cost(ctx.usage)
     commands = ", ".join(f"`{c}`" for c in state.skill.manifest.commands)
@@ -189,13 +203,50 @@ async def run_command(ctx: RunContext[RunState], name: str, asked: dict[str, Any
         )
     )
 
+    # A long log is stored in full and the model sees its head plus a stub (docs/context-management.md).
+    if len(log) > state.context_spec.text_limit_tokens * CHARS_PER_TOKEN:
+        text_key = f"{prefix}/{name}.txt"
+        await state.store.put(state.run_id, text_key, log.encode("utf-8"))
+        state.fetchable.add(text_key)
+        state.context.stored_text_results += 1
+        log = text_head(log, text_key, len(log))
+
+    metadata = {"round": number, "ok": outcome.ok, "command": name}
     if not outcome.images:
-        return log
+        return ToolReturn(return_value=log, metadata=metadata)
     content: list[str | BinaryContent] = [log]
     for (fname, png), key in zip(outcome.images.items(), image_keys, strict=True):
         content.append(f"{fname}:")
         content.append(BinaryContent(data=png, media_type="image/png", identifier=key))
-    return ToolReturn(return_value=content, metadata={"round": number, "ok": outcome.ok})
+    return ToolReturn(return_value=content, metadata=metadata)
+
+
+async def elide_history(ctx: RunContext[RunState], messages: list[ModelMessage]) -> list[ModelMessage]:
+    """The Pydantic AI history hook: runs before every model request (see context.py)."""
+    return elide(messages, ctx.deps)
+
+
+# --- fetch_result ---
+
+
+async def fetch_result(ctx: RunContext[RunState], key: str, part: int = 0) -> ToolReturn | str:
+    """Bring back a stored result that your history shows as a stub `[... | fetch_result('key')]`.
+    An image comes back as the image; a text file comes back one page at a time (`part`, from 0)."""
+    state = ctx.deps
+    key = key.strip().strip("'\"")
+    if key not in state.fetchable:
+        raise ModelRetry(f"{key!r} is not a stub in your history. Only keys shown as {FETCH_TOOL}('...') can be fetched.")
+    data = await state.store.get(state.run_id, key)
+    state.context.fetches += 1
+    media_type, _ = mimetypes.guess_type(key)
+    if media_type and media_type.startswith("image/"):
+        content: list[str | BinaryContent] = [f"{key}:", BinaryContent(data=data, media_type=media_type, identifier=key)]
+        return ToolReturn(return_value=content, metadata={"round": state.rounds, "ok": True, "command": FETCH_TOOL})
+    pages = paginate(data.decode("utf-8", "replace"))
+    if not 0 <= part < len(pages):
+        raise ModelRetry(f"{key} has {len(pages)} part(s), numbered 0 to {len(pages) - 1}.")
+    header = f"{key}, part {part + 1} of {len(pages)}:" if len(pages) > 1 else f"{key}:"
+    return f"{header}\n{pages[part]}"
 
 
 def command_tool(skill: Skill, name: str) -> Tool[RunState]:
@@ -241,7 +292,13 @@ def make_agent(skill: Skill, model: Model, instructions: str) -> Agent[RunState,
         deps_type=RunState,
         instructions=instructions,
         output_type=[ToolOutput(finish, name="finish", description="Hand over and end the run.")],
-        tools=[Tool(read_file, takes_ctx=True), Tool(write_file, takes_ctx=True), *(command_tool(skill, c) for c in skill.manifest.commands)],
+        tools=[
+            Tool(read_file, takes_ctx=True),
+            Tool(write_file, takes_ctx=True),
+            *(command_tool(skill, c) for c in skill.manifest.commands),
+            Tool(fetch_result, takes_ctx=True),
+        ],
+        capabilities=[ProcessHistory(elide_history)],
         retries=2,
     )
 
